@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2ow-ch ホーム</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
+        .thread-list { list-style: none; padding: 0; }
+        .thread-list li { margin: 10px 0; }
+        .thread-link { text-decoration: none; color: blue; }
+        .thread-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>2ow-ch ホーム</h2>
+    <p>スレッド一覧:</p>
+    <ul id="threadList" class="thread-list"></ul>
+
+    <h3>新しいスレッドを作成</h3>
+    <form id="createThreadForm">
+        <label for="threadName">スレッド名:</label>
+        <input type="text" id="threadName" required>
+        <button type="button" onclick="createThread()">作成</button>
+    </form>
+</div>
+
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<script>
+    const firebaseConfig = {
+        apiKey: "AIzaSyCSHY0snZzbaZZfJVUhqBs8qF9hQTdcocs",
+        authDomain: "ow-ch-9228d.firebaseapp.com",
+        projectId: "ow-ch-9228d",
+        storageBucket: "ow-ch-9228d.firebasestorage.app",
+        messagingSenderId: "Y919590705947",
+        appId: "1:919590705947:web:c5c9eb14d7e927fdb651be"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    function loadThreads() {
+        db.collection('threads').orderBy('createdAt').onSnapshot(snapshot => {
+            const threadList = document.getElementById('threadList');
+            threadList.innerHTML = '';
+
+            snapshot.forEach(doc => {
+                const thread = doc.data();
+                const li = document.createElement('li');
+                li.innerHTML = `<a href="thread.html?name=${encodeURIComponent(thread.name)}" class="thread-link">${thread.name}</a>`;
+                threadList.appendChild(li);
+            });
+        });
+    }
+
+    function createThread() {
+        const threadName = document.getElementById('threadName').value.trim();
+        if (threadName) {
+            db.collection('threads').add({
+                name: threadName,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            }).then(() => {
+                document.getElementById('threadName').value = '';
+                loadThreads();
+            });
+        } else {
+            alert("スレッド名を入力してください");
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", loadThreads);
+</script>
+
+</body>
+</html>
