@@ -1,268 +1,330 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>2ow-ch</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
-        .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
-        .thread-list { margin-top: 20px; }
-        .thread-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
-        .thread-item:hover { background-color: #f0f0f0; }
-        .post { border-bottom: 1px solid #ddd; padding: 10px 0; }
-        .post:last-child { border-bottom: none; }
-        .post-number { font-weight: bold; color: #555; }
-        .name { font-weight: bold; color: green; cursor: pointer; }
-        .message { margin: 5px 0; }
-        .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
-        .admin-controls { margin-top: 10px; }
-        .hidden { display: none; }
-        .form-container { margin-top: 40px; } /* 投稿フォームを下に配置 */
-        .form-container input, .form-container textarea { width: 100%; margin-bottom: 10px; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .thread-list {
+            margin-top: 20px;
+        }
+
+        .thread-item {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            cursor: pointer;
+        }
+
+        .thread-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .post {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        .post:last-child {
+            border-bottom: none;
+        }
+
+        .post-number {
+            font-weight: bold;
+            color: #555;
+        }
+
+        .name {
+            font-weight: bold;
+            color: green;
+            cursor: pointer;
+        }
+
+        .message {
+            margin: 5px 0;
+        }
+
+        .timestamp {
+            font-size: 0.9em;
+            color: #888;
+            margin-top: 5px;
+        }
+
+        .admin-controls {
+            margin-top: 10px;
+        }
+
+        .hidden {
+            display: none;
+        }
     </style>
 </head>
+
 <body>
 
-<div class="container">
-    <h2>2ow-ch</h2>
-    <p>ようこそ！2ow-chへ！</p>
+    <div class="container">
+        <h2>2ow-ch</h2>
+        <p>ようこそ！2ow-chへ！</p>
 
-    <!-- 管理者認証 -->
-    <button id="adminButton" onclick="showPasswordInput()">管理者ですか？</button>
-    <div id="passwordContainer" class="hidden">
-        <input type="password" id="adminPassword" placeholder="パスワードを入力">
-        <button onclick="authenticateAdmin()">認証</button>
-    </div>
-
-    <!-- スレッド作成ビュー -->
-    <div id="threadCreateView">
-        <h3>スレッド作成</h3>
-        <form id="threadForm">
-            <input type="text" id="threadTitle" placeholder="スレッドタイトルを入力" style="width: 100%;"><br><br>
-            <button type="button" onclick="createThread()">作成</button>
-        </form>
-
-        <div class="thread-list">
-            <h3>スレッド一覧</h3>
-            <div id="threadList"></div>
+        <!-- 管理者認証 -->
+        <button id="adminButton" onclick="showPasswordInput()">管理者ですか？</button>
+        <div id="passwordContainer" class="hidden">
+            <input type="password" id="adminPassword" placeholder="パスワードを入力">
+            <button onclick="authenticateAdmin()">認証</button>
         </div>
-    </div>
 
-    <!-- スレッド表示ビュー -->
-    <div id="threadView" class="hidden">
-        <h3 id="currentThreadTitle"></h3>
-        <button onclick="backToThreadCreate()">← 戻る</button>
-        <div id="posts"></div>
-        
-        <!-- 入力フォームを少し下に下げて配置 -->
-        <div class="form-container">
+        <!-- スレッド作成ビュー -->
+        <div id="threadCreateView">
+            <h3>スレッド作成</h3>
+            <form id="threadForm">
+                <input type="text" id="threadTitle" placeholder="スレッドタイトルを入力" style="width: 100%;"><br><br>
+                <button type="button" onclick="createThread()">作成</button>
+            </form>
+
+            <div class="thread-list">
+                <h3>スレッド一覧</h3>
+                <div id="threadList"></div>
+            </div>
+        </div>
+
+        <!-- スレッド表示ビュー -->
+        <div id="threadView" class="hidden">
+            <h3 id="currentThreadTitle"></h3>
+            <button onclick="backToThreadCreate()">← 戻る</button>
+            <div id="posts"></div>
             <form id="postForm">
-                <input type="text" id="name" placeholder="名前 (任意)">
-                <input type="email" id="email" placeholder="メールアドレス" required>
+                <input type="text" id="name" placeholder="名前 (任意)" style="width: 100%;"><br><br>
+                <input type="email" id="email" placeholder="メールアドレス" style="width: 100%;" required><br><br>
                 <textarea id="message" rows="4" cols="50" placeholder="ここにメッセージを入力してください"></textarea><br><br>
                 <button type="button" onclick="postMessage()">投稿</button>
             </form>
         </div>
+
     </div>
-</div>
 
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 
-<script>
-    const firebaseConfig = {
-        apiKey: "AIzaSyCILXdTDzxzwyZvv1XB8ZilAWGw4MWhDmk",
-        authDomain: "ow-ch-888e8.firebaseapp.com",
-        projectId: "ow-ch-888e8",
-        storageBucket: "ow-ch-888e8.appspot.com",
-        messagingSenderId: "153239068124",
-        appId: "1:153239068124:web:af1430e7a56b821bb48319"
-    };
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyCILXdTDzxzwyZvv1XB8ZilAWGw4MWhDmk",
+            authDomain: "ow-ch-888e8.firebaseapp.com",
+            projectId: "ow-ch-888e8",
+            storageBucket: "ow-ch-888e8.appspot.com",
+            messagingSenderId: "153239068124",
+            appId: "1:153239068124:web:af1430e7a56b821bb48319"
+        };
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.firestore();
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
 
-    let currentThreadId = null;
-    let isAdmin = false;
+        let currentThreadId = null;
+        let isAdmin = false;
 
-    document.addEventListener("DOMContentLoaded", () => {
-        loadThreadsRealtime();
-    });
-
-    function showPasswordInput() {
-        document.getElementById("passwordContainer").classList.remove("hidden");
-    }
-
-    function authenticateAdmin() {
-        const password = document.getElementById("adminPassword").value;
-        if (password === "lol1225") { 
-            isAdmin = true;
-            alert("管理者モードを有効化しました。");
-            document.getElementById("passwordContainer").classList.add("hidden");
-            loadThreadsRealtime(); 
-        } else {
-            alert("パスワードが間違っています。");
-        }
-    }
-
-    function createThread() {
-        const title = document.getElementById("threadTitle").value.trim();
-        if (!title) {
-            alert("タイトルを入力してください。");
-            return;
-        }
-
-        const thread = { title, createdAt: firebase.firestore.FieldValue.serverTimestamp(), lastPostNumber: 0 };
-        db.collection("threads").add(thread).then(() => {
-            document.getElementById("threadTitle").value = '';
+        document.addEventListener("DOMContentLoaded", () => {
+            loadThreadsRealtime();
         });
-    }
 
-    function loadThreadsRealtime() {
-        db.collection("threads").orderBy("createdAt", "desc").onSnapshot(snapshot => {
-            const threadList = document.getElementById("threadList");
-            threadList.innerHTML = '';
-            snapshot.forEach(doc => {
-                const thread = doc.data();
-                const threadItem = document.createElement("div");
-                threadItem.classList.add("thread-item");
-                threadItem.textContent = thread.title;
+        function showPasswordInput() {
+            document.getElementById("passwordContainer").classList.remove("hidden");
+        }
 
-                if (isAdmin) {
-                    const deleteButton = document.createElement("button");
-                    deleteButton.textContent = "削除";
-                    deleteButton.onclick = (event) => {
-                        event.stopPropagation();
-                        deleteThread(doc.id);
-                    };
-                    threadItem.appendChild(deleteButton);
-                }
+        function authenticateAdmin() {
+            const password = document.getElementById("adminPassword").value;
+            if (password === "lol1225") { // OP用パスワード
+                isAdmin = true;
+                alert("管理者モードを有効化しました。");
+                document.getElementById("passwordContainer").classList.add("hidden");
+                loadThreadsRealtime(); // 管理者モードを有効にしたらスレッド一覧を再読み込み
+            } else {
+                alert("パスワードが間違っています。");
+            }
+        }
 
-                threadItem.onclick = () => showThreadView(doc.id, thread.title);
-                threadList.appendChild(threadItem);
+        function createThread() {
+            const title = document.getElementById("threadTitle").value.trim();
+            if (!title) {
+                alert("タイトルを入力してください。");
+                return;
+            }
+
+            const thread = { title, createdAt: firebase.firestore.FieldValue.serverTimestamp(), lastPostNumber: 0 };
+            db.collection("threads").add(thread).then(() => {
+                document.getElementById("threadTitle").value = '';
             });
-        });
-    }
-
-    function deleteThread(threadId) {
-        if (confirm("このスレッドを削除しますか？")) {
-            db.collection("threads").doc(threadId).delete();
         }
-    }
 
-    function showThreadView(threadId, threadTitle) {
-        currentThreadId = threadId;
-        document.getElementById("threadCreateView").classList.add("hidden");
-        document.getElementById("threadView").classList.remove("hidden");
-        document.getElementById("currentThreadTitle").textContent = threadTitle;
-        loadPostsRealtime();
-    }
+        function loadThreadsRealtime() {
+            db.collection("threads").orderBy("createdAt", "desc").onSnapshot(snapshot => {
+                const threadList = document.getElementById("threadList");
+                threadList.innerHTML = ''; // スレッドリストの初期化
 
-    function backToThreadCreate() {
-        document.getElementById("threadCreateView").classList.remove("hidden");
-        document.getElementById("threadView").classList.add("hidden");
-        currentThreadId = null;
-    }
+                snapshot.forEach(doc => {
+                    const thread = doc.data();
+                    const threadItem = document.createElement("div");
+                    threadItem.classList.add("thread-item");
+                    threadItem.textContent = thread.title;
 
-    function loadPostsRealtime() {
-        const postsContainer = document.getElementById("posts");
-        db.collection("threads").doc(currentThreadId).collection("posts").orderBy("timestamp").onSnapshot(snapshot => {
-            postsContainer.innerHTML = '';
-            let postNumber = 0;
-            snapshot.forEach(postDoc => {
-                const post = postDoc.data();
-                postNumber++;
+                    // 管理者モードが有効な場合のみ削除ボタンを追加
+                    if (isAdmin) {
+                        const deleteButton = document.createElement("button");
+                        deleteButton.textContent = "削除";
+                        deleteButton.onclick = (event) => {
+                            event.stopPropagation(); // 削除ボタンのクリック時にスレッドのクリックイベントが発生しないようにする
+                            deleteThread(doc.id);
+                        };
+                        threadItem.appendChild(deleteButton);
+                    }
 
-                const postElement = document.createElement("div");
-                postElement.classList.add("post");
-
-                postElement.innerHTML = `
-                    <div class="post-number">#${postNumber}</div>
-                    <div>
-                        <div class="name" onclick="${isAdmin ? `alert('Email: ${post.email}')` : ''}">${post.name || "名無し"}</div>
-                        <div class="message">${parseMentions(post.message)}</div>
-                        <div class="timestamp">${new Date(post.timestamp?.toDate()).toLocaleString()}</div>
-                    </div>
-                `;
-
-                if (isAdmin) {
-                    const emailElement = document.createElement("div");
-                    emailElement.textContent = `メールアドレス: ${post.email}`;
-                    emailElement.style.fontSize = "0.9em";
-                    emailElement.style.color = "#555";
-                    postElement.appendChild(emailElement);
-                }
-
-                if (isAdmin) {
-                    const deleteButton = document.createElement("button");
-                    deleteButton.textContent = "削除";
-                    deleteButton.onclick = () => deletePost(postDoc.id);
-                    postElement.appendChild(deleteButton);
-                }
-
-                postsContainer.appendChild(postElement);
+                    threadItem.onclick = () => showThreadView(doc.id, thread.title);
+                    threadList.appendChild(threadItem);
+                });
             });
-        });
-    }
-
-    function parseMentions(message) {
-        return message.replace(/>>\d+/g, match => `<a href="#${match.slice(2)}" onclick="scrollToPost(${match.slice(2)})">${match}</a>`);
-    }
-
-    function postMessage() {
-        const name = document.getElementById("name").value.trim();
-        const email = document.getElementById("email").value.trim();
-        const message = document.getElementById("message").value.trim();
-        if (!email) {
-            alert("メールアドレスを入力してください。");
-            return;
         }
 
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            alert("有効なメールアドレスを入力してください。");
-            return;
+        function deleteThread(threadId) {
+            if (confirm("このスレッドを削除しますか？")) {
+                db.collection("threads").doc(threadId).delete();
+            }
         }
 
-        if (!message) {
-            alert("メッセージを入力してください。");
-            return;
+        function showThreadView(threadId, threadTitle) {
+            currentThreadId = threadId;
+            document.getElementById("threadCreateView").classList.add("hidden");
+            document.getElementById("threadView").classList.remove("hidden");
+            document.getElementById("currentThreadTitle").textContent = threadTitle;
+
+            loadPostsRealtime();
         }
 
-        db.collection("threads").doc(currentThreadId).get().then(doc => {
-            const threadData = doc.data();
-            const newPostNumber = (threadData.lastPostNumber || 0) + 1;
+        function backToThreadCreate() {
+            document.getElementById("threadCreateView").classList.remove("hidden");
+            document.getElementById("threadView").classList.add("hidden");
+            currentThreadId = null;
+        }
 
-            const post = {
-                name: name || "名無し",
-                email,
-                message,
-                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-                postNumber: newPostNumber,
-            };
+        function loadPostsRealtime() {
+            const postsContainer = document.getElementById("posts");
+            db.collection("threads").doc(currentThreadId).collection("posts").orderBy("timestamp").onSnapshot(snapshot => {
+                postsContainer.innerHTML = '';
 
-            db.collection("threads").doc(currentThreadId).collection("posts").add(post).then(() => {
-                db.collection("threads").doc(currentThreadId).update({ lastPostNumber: newPostNumber });
-                document.getElementById("message").value = '';
+                let postNumber = 0;
+                snapshot.forEach(postDoc => {
+                    const post = postDoc.data();
+                    postNumber++;
+
+                    const postElement = document.createElement("div");
+                    postElement.classList.add("post");
+                    postElement.id = `post-${postNumber}`;  // 投稿番号をIDに設定
+
+                    postElement.innerHTML = `
+                        <div class="post-number">#${postNumber}</div>
+                        <div>
+                            <div class="name" onclick="${isAdmin ? `alert('Email: ${post.email}')` : ''}">${post.name || "名無し"}</div>
+                            <div class="message">${parseMentions(post.message)}</div>
+                            <div class="timestamp">${new Date(post.timestamp?.toDate()).toLocaleString()}</div>
+                        </div>
+                    `;
+
+                    // 管理者の場合、メールアドレスを表示
+                    if (isAdmin) {
+                        const emailElement = document.createElement("div");
+                        emailElement.textContent = `メールアドレス: ${post.email}`;
+                        emailElement.style.fontSize = "0.9em";
+                        emailElement.style.color = "#555";
+                        postElement.appendChild(emailElement);
+                    }
+
+                    if (isAdmin) {
+                        const deleteButton = document.createElement("button");
+                        deleteButton.textContent = "削除";
+                        deleteButton.onclick = () => deletePost(postDoc.id);
+                        postElement.appendChild(deleteButton);
+                    }
+
+                    postsContainer.appendChild(postElement);
+                });
             });
-        });
-    }
-
-    function deletePost(postId) {
-        if (confirm("この投稿を削除しますか？")) {
-            db.collection("threads").doc(currentThreadId).collection("posts").doc(postId).delete();
         }
-    }
 
-    function scrollToPost(postNumber) {
-        const postElement = document.querySelector(`.post-number:contains("#${postNumber}")`);
-        if (postElement) {
-            postElement.scrollIntoView({ behavior: 'smooth' });
+        function parseMentions(message) {
+            return message.replace(/>>\d+/g, match => {
+                const postNumber = match.slice(2);  // >>番号を取り出し
+                return `<a href="#post-${postNumber}" onclick="scrollToPost(${postNumber})">${match}</a>`;  // 投稿番号にリンクを設定
+            });
         }
-    }
-</script>
+
+        function scrollToPost(postNumber) {
+            // 該当の投稿番号の位置までスクロールする
+            const postElement = document.getElementById(`post-${postNumber}`);
+            if (postElement) {
+                postElement.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        function postMessage() {
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const message = document.getElementById("message").value.trim();
+            if (!email) {
+                alert("メールアドレスを入力してください。");
+                return;
+            }
+
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                alert("有効なメールアドレスを入力してください。");
+                return;
+            }
+
+            if (!message) {
+                alert("メッセージを入力してください。");
+                return;
+            }
+
+            db.collection("threads").doc(currentThreadId).get().then(doc => {
+                const threadData = doc.data();
+                const newPostNumber = (threadData.lastPostNumber || 0) + 1;
+
+                const post = {
+                    name: name || "名無し",
+                    email,
+                    message,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    postNumber: newPostNumber,
+                };
+
+                db.collection("threads").doc(currentThreadId).collection("posts").add(post).then(() => {
+                    db.collection("threads").doc(currentThreadId).update({ lastPostNumber: newPostNumber });
+                    document.getElementById("message").value = '';
+                });
+            });
+        }
+
+        function deletePost(postId) {
+            if (confirm("この投稿を削除しますか？")) {
+                db.collection("threads").doc(currentThreadId).collection("posts").doc(postId).delete();
+            }
+        }
+
+    </script>
 
 </body>
+
 </html>
