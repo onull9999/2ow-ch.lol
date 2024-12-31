@@ -8,18 +8,14 @@
         body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
         .thread-list { margin-top: 20px; }
-        .thread-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; position: relative; }
+        .thread-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .thread-item:hover { background-color: #f0f0f0; }
-        .thread-item .delete-button { position: absolute; right: 10px; top: 10px; display: none; }
-        .thread-item.admin .delete-button { display: block; }
         .post { border-bottom: 1px solid #ddd; padding: 10px 0; }
         .post:last-child { border-bottom: none; }
         .post-number { font-weight: bold; color: #555; }
         .name { font-weight: bold; color: green; cursor: pointer; }
         .message { margin: 5px 0; }
         .timestamp { font-size: 0.9em; color: #888; margin-top: 5px; }
-        .email { font-size: 0.9em; color: blue; margin-top: 5px; display: none; }
-        .post.admin .email { display: block; }
         .admin-controls { margin-top: 10px; }
         .hidden { display: none; }
     </style>
@@ -86,7 +82,7 @@
     let isAdmin = false;
 
     document.addEventListener("DOMContentLoaded", () => {
-        loadThreads();
+        loadThreadsRealtime();
     });
 
     function showPasswordInput() {
@@ -99,7 +95,6 @@
             isAdmin = true;
             alert("管理者モードを有効化しました。");
             document.getElementById("passwordContainer").classList.add("hidden");
-            loadThreads(); // スレッドリストを再読み込み
         } else {
             alert("パスワードが間違っています。");
         }
@@ -115,27 +110,24 @@
         const thread = { title, createdAt: firebase.firestore.FieldValue.serverTimestamp(), lastPostNumber: 0 };
         db.collection("threads").add(thread).then(() => {
             document.getElementById("threadTitle").value = '';
-            loadThreads();
         });
     }
 
-    function loadThreads() {
-        db.collection("threads").orderBy("createdAt", "desc").get().then(querySnapshot => {
+    function loadThreadsRealtime() {
+        db.collection("threads").orderBy("createdAt", "desc").onSnapshot(snapshot => {
             const threadList = document.getElementById("threadList");
             threadList.innerHTML = '';
-            querySnapshot.forEach(doc => {
+            snapshot.forEach(doc => {
                 const thread = doc.data();
                 const threadItem = document.createElement("div");
                 threadItem.classList.add("thread-item");
                 threadItem.textContent = thread.title;
 
                 if (isAdmin) {
-                    threadItem.classList.add("admin");
                     const deleteButton = document.createElement("button");
                     deleteButton.textContent = "削除";
-                    deleteButton.classList.add("delete-button");
-                    deleteButton.onclick = (event) => {
-                        event.stopPropagation();
+                    deleteButton.onclick = (e) => {
+                        e.stopPropagation();
                         deleteThread(doc.id);
                     };
                     threadItem.appendChild(deleteButton);
@@ -149,9 +141,7 @@
 
     function deleteThread(threadId) {
         if (confirm("このスレッドを削除しますか？")) {
-            db.collection("threads").doc(threadId).delete().then(() => {
-                loadThreads();
-            });
+            db.collection("threads").doc(threadId).delete();
         }
     }
 
@@ -161,7 +151,7 @@
         document.getElementById("threadView").classList.remove("hidden");
         document.getElementById("currentThreadTitle").textContent = threadTitle;
 
-        loadPosts();
+        loadPostsRealtime();
     }
 
     function backToThreadCreate() {
@@ -170,25 +160,24 @@
         currentThreadId = null;
     }
 
-    function loadPosts() {
+    function loadPostsRealtime() {
         const postsContainer = document.getElementById("posts");
         postsContainer.innerHTML = '';
-        db.collection("threads").doc(currentThreadId).collection("posts").orderBy("timestamp").get().then(querySnapshot => {
-            let postNumber = 0;
-            querySnapshot.forEach(postDoc => {
+
+        db.collection("threads").doc(currentThreadId).collection("posts").orderBy("timestamp").onSnapshot(snapshot => {
+            postsContainer.innerHTML = '';
+            snapshot.forEach(postDoc => {
                 const post = postDoc.data();
-                postNumber++;
+
                 const postElement = document.createElement("div");
                 postElement.classList.add("post");
-                if (isAdmin) postElement.classList.add("admin");
 
                 postElement.innerHTML = `
-                    <div class="post-number">#${postNumber}</div>
+                    <div class="post-number">#${post.postNumber}</div>
                     <div>
-                        <div class="name">${post.name || "名無し"}</div>
+                        <div class="name" onclick="showEmail('${post.email}')">${post.name || "名無し"}</div>
                         <div class="message">${parseMentions(post.message)}</div>
                         <div class="timestamp">${new Date(post.timestamp.toDate()).toLocaleString()}</div>
-                        <div class="email">メール: ${post.email}</div>
                     </div>
                 `;
 
@@ -205,7 +194,17 @@
     }
 
     function parseMentions(message) {
-        return message.replace(/>>\d+/g, '<a href="#">$&</a>');
+        return message.replace(/>>\d+/g, match => {
+            const postNumber = match.slice(2);
+            return `<a href="#${postNumber}" onclick="scrollToPost(${postNumber})">${match}</a>`;
+        });
+    }
+
+    function scrollToPost(postNumber) {
+        const target = document.querySelector(`.post-number:contains("#${postNumber}")`);
+        if (target) {
+            target.scrollIntoView({ behavior: "smooth" });
+        }
     }
 
     function postMessage() {
@@ -242,7 +241,6 @@
 
             db.collection("threads").doc(currentThreadId).collection("posts").add(post).then(() => {
                 db.collection("threads").doc(currentThreadId).update({ lastPostNumber: newPostNumber });
-                loadPosts();
                 document.getElementById("message").value = '';
             });
         });
@@ -250,9 +248,13 @@
 
     function deletePost(postId) {
         if (confirm("この投稿を削除しますか？")) {
-            db.collection("threads").doc(currentThreadId).collection("posts").doc(postId).delete().then(() => {
-                loadPosts();
-            });
+            db.collection("threads").doc(currentThreadId).collection("posts").doc(postId).delete();
+        }
+    }
+
+    function showEmail(email) {
+        if (isAdmin) {
+            alert(`メールアドレス: ${email}`);
         }
     }
 </script>
