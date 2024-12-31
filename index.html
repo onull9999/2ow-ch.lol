@@ -8,7 +8,7 @@
         body { font-family: Arial, sans-serif; background-color: #f7f7f7; padding: 20px; }
         .container { max-width: 600px; margin: 0 auto; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2); }
         .thread-list { margin-top: 20px; }
-        .thread-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .thread-item { padding: 10px; border-bottom: 1px solid #ddd; cursor: pointer; }
         .thread-item:hover { background-color: #f0f0f0; }
         .post { border-bottom: 1px solid #ddd; padding: 10px 0; }
         .post:last-child { border-bottom: none; }
@@ -95,6 +95,7 @@
             isAdmin = true;
             alert("管理者モードを有効化しました。");
             document.getElementById("passwordContainer").classList.add("hidden");
+            loadThreadsRealtime(); // 管理者モードを有効にしたらスレッド一覧を再読み込み
         } else {
             alert("パスワードが間違っています。");
         }
@@ -116,18 +117,19 @@
     function loadThreadsRealtime() {
         db.collection("threads").orderBy("createdAt", "desc").onSnapshot(snapshot => {
             const threadList = document.getElementById("threadList");
-            threadList.innerHTML = '';
+            threadList.innerHTML = ''; // スレッドリストの初期化
             snapshot.forEach(doc => {
                 const thread = doc.data();
                 const threadItem = document.createElement("div");
                 threadItem.classList.add("thread-item");
                 threadItem.textContent = thread.title;
 
+                // 管理者モードが有効な場合のみ削除ボタンを追加
                 if (isAdmin) {
                     const deleteButton = document.createElement("button");
                     deleteButton.textContent = "削除";
-                    deleteButton.onclick = (e) => {
-                        e.stopPropagation();
+                    deleteButton.onclick = (event) => {
+                        event.stopPropagation(); // 削除ボタンのクリック時にスレッドのクリックイベントが発生しないようにする
                         deleteThread(doc.id);
                     };
                     threadItem.appendChild(deleteButton);
@@ -162,24 +164,33 @@
 
     function loadPostsRealtime() {
         const postsContainer = document.getElementById("posts");
-        postsContainer.innerHTML = '';
-
         db.collection("threads").doc(currentThreadId).collection("posts").orderBy("timestamp").onSnapshot(snapshot => {
             postsContainer.innerHTML = '';
+            let postNumber = 0;
             snapshot.forEach(postDoc => {
                 const post = postDoc.data();
+                postNumber++;
 
                 const postElement = document.createElement("div");
                 postElement.classList.add("post");
 
                 postElement.innerHTML = `
-                    <div class="post-number">#${post.postNumber}</div>
+                    <div class="post-number">#${postNumber}</div>
                     <div>
-                        <div class="name" onclick="showEmail('${post.email}')">${post.name || "名無し"}</div>
+                        <div class="name" onclick="${isAdmin ? `alert('Email: ${post.email}')` : ''}">${post.name || "名無し"}</div>
                         <div class="message">${parseMentions(post.message)}</div>
-                        <div class="timestamp">${new Date(post.timestamp.toDate()).toLocaleString()}</div>
+                        <div class="timestamp">${new Date(post.timestamp?.toDate()).toLocaleString()}</div>
                     </div>
                 `;
+
+                // 管理者の場合、メールアドレスを表示
+                if (isAdmin) {
+                    const emailElement = document.createElement("div");
+                    emailElement.textContent = `メールアドレス: ${post.email}`;
+                    emailElement.style.fontSize = "0.9em";
+                    emailElement.style.color = "#555";
+                    postElement.appendChild(emailElement);
+                }
 
                 if (isAdmin) {
                     const deleteButton = document.createElement("button");
@@ -194,17 +205,7 @@
     }
 
     function parseMentions(message) {
-        return message.replace(/>>\d+/g, match => {
-            const postNumber = match.slice(2);
-            return `<a href="#${postNumber}" onclick="scrollToPost(${postNumber})">${match}</a>`;
-        });
-    }
-
-    function scrollToPost(postNumber) {
-        const target = document.querySelector(`.post-number:contains("#${postNumber}")`);
-        if (target) {
-            target.scrollIntoView({ behavior: "smooth" });
-        }
+        return message.replace(/>>\d+/g, match => `<a href="#${match.slice(2)}">${match}</a>`);
     }
 
     function postMessage() {
@@ -249,12 +250,6 @@
     function deletePost(postId) {
         if (confirm("この投稿を削除しますか？")) {
             db.collection("threads").doc(currentThreadId).collection("posts").doc(postId).delete();
-        }
-    }
-
-    function showEmail(email) {
-        if (isAdmin) {
-            alert(`メールアドレス: ${email}`);
         }
     }
 </script>
